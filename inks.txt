@@ -1,3 +1,5 @@
+// Preloaded inks for XERA4
+// Antonio Sánchez
 00 //Ink 0
 00
 FF //Ink 1
