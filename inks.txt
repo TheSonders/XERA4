@@ -1,0 +1,32 @@
+00 //Ink 0
+00
+FF //Ink 1
+0F
+0F //Ink 2
+00
+F0 //Ink 3
+00
+00 //Ink 4
+0F
+FF //Ink 5
+00
+F0 //Ink 6
+0F
+0F //Ink 7
+0F
+AA //Ink 8
+0A
+FF //Ink 9
+0F
+AF //Ink 10
+0A
+FA //Ink 11
+0A
+AA //Ink 12
+0F
+AA //Ink 13
+0A
+FA //Ink 14
+0F
+AF //Ink 15
+0F
