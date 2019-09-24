@@ -1,3 +1,5 @@
+
+//Antonio Sánchez
 module XERA4(
 	input clk,
 	output VSync,HSync,
