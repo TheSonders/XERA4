@@ -1,0 +1,23 @@
+// Programa de prueba precargado en la RAM del XERA4
+// Rellena la pantalla con bandas de colores
+04	00	00	//  0	LDVPl 		h000  		Ponemos el puntero de video a 0
+09	80	07	//  3	LDBCll		h780 		(12lineasx320ancho)
+0F	01		//	6	LD_VPlinc	h01			Un pixel con tinta 0 y un pixel con tinta 1
+0D			//	8	DECBC					Disminuimos el contador
+0E	03		//	9	JMPZ		(+3)		Si es 0 saltamos al siguiente color
+06	FA		//	11	RJMP		(-6)		Si no es 0 saltamos al siguiente byte
+09	80	07	//  13	LDBCll		h780 		
+0F	02		//	16	LD_VPlinc	h02			Tinta 2
+0D			//	18	DECBC					Disminuimos el contador
+0E	03		//	19	JMPZ		(+3)		Si es 0 saltamos al siguiente color
+06	FA		//	21	RJMP		(-6)		Si no es 0 saltamos al siguiente byte
+09	80	07	//  23	LDBCll		h780 		
+0F	03		//	26	LD_VPlinc	h02			Tinta 3
+0D			//	28	DECBC					Disminuimos el contador
+0E	03		//	29	JMPZ		(+3)		Si es 0 saltamos al siguiente color
+06	FA		//	31	RJMP		(-6)		Si no es 0 saltamos al siguiente byte
+09	80	07	//  33	LDBCll		h780 		Restauramos el contador
+0F	04		//	36	LD_VPlinc	h03			Tinta 4
+0D			//	38	DECBC
+0E	FF		//	39	JMPZ		(-1)		Ciclo infinito
+06	FA		//	41	RJMP		(-6)		Si no es 0 saltamos al siguiente byte
