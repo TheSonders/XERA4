@@ -1,23 +1,22 @@
 // Programa de prueba precargado en la RAM del XERA4
 // Rellena la pantalla con bandas de colores
-04	00	00	//  0	LDVPl 		h000  		Ponemos el puntero de video a 0
-09	80	07	//  3	LDBCll		h780 		(12lineasx320ancho)
-0F	01		//	6	LD_VPlinc	h01			Un pixel con tinta 0 y un pixel con tinta 1
-0D			//	8	DECBC					Disminuimos el contador
-0E	03		//	9	JMPZ		(+3)		Si es 0 saltamos al siguiente color
-06	FA		//	11	RJMP		(-6)		Si no es 0 saltamos al siguiente byte
-09	80	07	//  13	LDBCll		h780 		
-0F	02		//	16	LD_VPlinc	h02			Tinta 2
-0D			//	18	DECBC					Disminuimos el contador
-0E	03		//	19	JMPZ		(+3)		Si es 0 saltamos al siguiente color
-06	FA		//	21	RJMP		(-6)		Si no es 0 saltamos al siguiente byte
-09	80	07	//  23	LDBCll		h780 		
-0F	03		//	26	LD_VPlinc	h02			Tinta 3
-0D			//	28	DECBC					Disminuimos el contador
-0E	03		//	29	JMPZ		(+3)		Si es 0 saltamos al siguiente color
-06	FA		//	31	RJMP		(-6)		Si no es 0 saltamos al siguiente byte
-09	80	07	//  33	LDBCll		h780 		Restauramos el contador
-0F	04		//	36	LD_VPlinc	h03			Tinta 4
-0D			//	38	DECBC
-0E	FF		//	39	JMPZ		(-1)		Ciclo infinito
-06	FA		//	41	RJMP		(-6)		Si no es 0 saltamos al siguiente byte
+05	00	00	//  0	LDVPl 		h0000  		Ponemos el puntero de video a 0
+02	01		//	3	LDAl		h01			Cargamos 1 en A
+0B	80	07	//  5	LDBCll		h780 		(12lineasx320ancho)
+14			//	8	LD_VPAinc				
+10			//	9	DECBC					Disminuimos el contador
+12	03		//	A	JMPZ		(+3)		Si es 0 saltamos al siguiente color
+07	FB		//	C	RJMP		(-5)		Si no es 0 saltamos al siguiente byte (pixel)
+0F			//	E	INCA					Incrementamos A (color)
+11	10		//	F	COMPAl		h10			Comparamos A con h10 (16)
+12	03		//	11	JMPZ		(+3)		Si es igual, terminamos
+07	F1		//	13	RJMP		(-15)		Si no, siguiente color
+05	00	7D	//  15	LDVPl 		h7D00  		Ponemos el puntero de video en la tinta 0
+0C			//	18	LDA_UP					Cargar el contenido de VideoRam en A
+05	00	7D	//  19	LDVPl 		h7D00  		Cargamos de nuevo para el bucle
+0F			//	1C	INCA					Incrementar A
+14			//	1D	LD_VPAinc				Aumentamos en uno el valor de la tinta 0
+0B	FF	FF	//  1E	LDBCll		hFFFF 		Retardo
+10			//	21	DECBC					Disminuimos el contador
+12	F6		//	22	JMPZ		(-10)		Si es 0 saltamos seguimos el bucle
+07	FC		//	24	RJMP		(-4)		Si no es 0 saltamos seguimos en el retardo
