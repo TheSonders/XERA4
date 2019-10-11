@@ -1,5 +1,5 @@
 // BIOS cargada en la ROM del XERA4
 // Por ahora, sólo salta a la posición de programa en RAM
-06 10 00	// GOTO 4096 
+06 00 10	// GOTO 4096 
 
 
