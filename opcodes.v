@@ -1,4 +1,5 @@
-
+//This file is also used by the XERA4 compiler,
+//ensures there's a copy of this file on the compliler path
 //OPCODES						//Cycles	//Description
 `define	NOP				8'H00	// 3
 `define	LD_A_B			8'H01	// 3		Register B to Register A

@@ -1,7 +1,7 @@
 //Antonio Sánchez
 //Memoria del sistema
-//h0000 - h0FFF ROM Bios
-//h
+//h0000 - h0FFF 	ROM Bios
+//h0900 - h0FFF	8x8 Font
 
 `define 	Rom_Size		15'h1000
 `define	Font_Pos		(`Rom_Size)-15'h0700
@@ -13,20 +13,22 @@ module System_RAM(
 	input	we,
 	input	clk);
 
-reg [7:0] RAM [4096:32767];
-reg [7:0] ROM [0:4095];
+reg [7:0] RAM [0:32767];
 
 initial begin
- $readmemh("ROM_Fonts.txt", ROM,`Font_Pos);
+ $readmemh("ROM_BIOS.txt", RAM, 0);
+ $readmemh("ROM_Fonts.txt", RAM, `Font_Pos);
  $readmemh("FillScreen.txt", RAM,`Rom_Size);
 end
 
+wire write_enable = (we && Add>=`Rom_Size);
+
 always @(posedge clk) begin
- if (we && Add>=`Rom_Size)
+ if (write_enable)
    RAM[Add]<=In_Data;
- else begin
-	if (Add>=`Rom_Size) Out_Data<=RAM[Add];
-	else Out_Data<=ROM[Add];end
+ Out_Data<=RAM[Add];
 end
 	
 endmodule
+
+
