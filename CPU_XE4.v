@@ -1,29 +1,8 @@
 //XERA4 Experimental CPU
 //Antonio Sánchez
 
-//OPCODES						//Cycles	//Description
-`define	NOP			8'H00	// 3
-`define	LDAB			8'H01	// 3		Register B to Register A
-`define	LDAl			8'H02	//	4		8 bits literal to Register A
-`define	LDBl			8'H03	//	4		8 bits literal to Register B
-`define	LDUPl			8'H04	//	6		15bits literal to User Pointer
-`define	LDVPl			8'H05	//	6		15bits literal to Video Pointer
-`define	GOTO			8'H06	//	7		15bits absolute Jump
-`define	RJMP			8'H07	//	4		8bits signed Jump
-`define	SUBAl			8'H08	//	4		2comp' substract literal-A
-`define	LD_UPl		8'H09	//	5		8bits literal to address pointed by UP
-`define	LD_VPl		8'H0A	//	5		8bits literal to address pointed by VP
-`define	LDBCll		8'H0B	//	6		16bits literal to BC
-`define	LDA_UP		8'H0C	//	4		Contents of UP to A
-`define	LDA_VP		8'H0D	//	4		Contents of VP to A
-`define	DECA			8'H0E	//	3		Decrements register A
-`define	INCA			8'H0F	//	3		Increments register A
-`define	DECBC			8'H10	//	3		Decrements pair BC
-`define	CMPAl			8'H11	//	4		Update flags with A-8bits literal
-`define	JMPZ			8'H12	//	4		8bits signed Jump if Flag Z
-`define	LD_VPlinc	8'H13	//	5		8bits literal to address pointed by VP and increments VP
-`define	LD_VPAinc	8'H14	//	4		Register A to address pointed by VP and increments VP
-`define	LD_VPBinc	8'H15	//	4		Register B to address pointed by VP and increments VP
+
+`include "opcodes.v"
 
 //F Register FLAGS
 `define	Cf		3'h0 	//Carry flag
@@ -65,73 +44,73 @@ always @(negedge clk) begin
 		begin IR<=RAM_In;QC<=3'h2;PC<=PC+15'h1;end
 	3'h2:
 		case (IR)
-			`LDAB:		begin A<=B;QC<=3'h0;end
-			`LDAl,
-			`LDBl,	
-			`LDUPl,	
-			`LDVPl,	
-			`GOTO,	
-			`RJMP,	
-			`SUBAl,
-			`CMPAl,
-			`LD_UPl,		
-			`LD_VPl,
-			`LDBCll,	
-			`JMPZ,	
-			`LD_VPlinc:	begin RAM_Add<=PC;we<=0;QC<=3'h3;end
-			`LDA_UP:		begin RAM_Add<=UP;we<=0;QC<=3'h3;end
-			`LDA_VP:		begin Video_Add<=VP;Video_we<=0;QC<=3'h3;end
-			`DECA:		begin	A<=A-8'b1;F[`Zf]<=(A==8'h1);QC<=3'h0;end
-			`INCA:		begin	A<=A+8'b1;F[`Zf]<=(A==8'hFF);QC<=3'h0;end
-			`DECBC:		begin	{B,C}<={B,C}-16'b1;F[`Zf]<=({B,C}==16'h1);QC<=3'h0;end
-			`LD_VPAinc:	begin	Video_Add<=VP;Video_Out<=A;Video_we<=1;QC<=3'h3;end
-			`LD_VPBinc:	begin	Video_Add<=VP;Video_Out<=B;Video_we<=1;QC<=3'h3;end
-			default:		QC<=3'h0; //`NOP:
+			`LD_A_B:				begin A<=B;QC<=3'h0;end
+			`LD_A_8,
+			`LD_B_8,	
+			`LD_UP_15,	
+			`LD_VP_15,	
+			`GOTO_15,	
+			`RJMP_8,	
+			`SUB_A_8,
+			`CMP_A_8,
+			`LD_UP_8,		
+			`LD_VP_8,
+			`LD_BC_16,	
+			`JMPZ_8,	
+			`LDINC_$VP$_8:		begin RAM_Add<=PC;we<=0;QC<=3'h3;end
+			`LD_A_$UP$:			begin RAM_Add<=UP;we<=0;QC<=3'h3;end
+			`LD_A_$VP$:			begin Video_Add<=VP;Video_we<=0;QC<=3'h3;end
+			`DEC_A:				begin	A<=A-8'b1;F[`Zf]<=(A==8'h1);QC<=3'h0;end
+			`INC_A:				begin	A<=A+8'b1;F[`Zf]<=(A==8'hFF);QC<=3'h0;end
+			`DEC_BC:				begin	{B,C}<={B,C}-16'b1;F[`Zf]<=({B,C}==16'h1);QC<=3'h0;end
+			`LDINC_$VP$_A:		begin	Video_Add<=VP;Video_Out<=A;Video_we<=1;QC<=3'h3;end
+			`LDINC_$VP$_B:		begin	Video_Add<=VP;Video_Out<=B;Video_we<=1;QC<=3'h3;end
+			default:				QC<=3'h0; //`NOP:
 		endcase
 	3'h3:
 		case (IR)
-			`LDAl:		begin A<=RAM_In;PC<=PC+15'h1;QC<=3'h0;end
-			`LDBl:		begin B<=RAM_In;PC<=PC+15'h1;QC<=3'h0;end
-			`LDUPl:		begin UP[7:0]<=RAM_In;PC<=PC+15'h1;QC<=3'h4;end
-			`LDVPl:		begin VP[7:0]<=RAM_In;PC<=PC+15'h1;QC<=3'h4;end
-			`GOTO:		begin PCt[7:0]<=RAM_In;PC<=PC+15'h1;QC<=3'h4;end
-			`JMPZ:		begin PC<=(F[`Zf])?PC+{{7{RAM_In[7]}},RAM_In}:PC+15'h1;QC<=3'h0;end
-			`RJMP:		begin	PC<=PC+{{7{RAM_In[7]}},RAM_In};QC<=3'h0;end
-			`SUBAl:		begin {F[`Cf],A}<=A-RAM_In;PC<=PC+15'h1;QC<=3'h0;end
-			`CMPAl:		begin	{F[`Cf],PCt[7:0]}<=A-RAM_In;F[`Zf]<=(A==RAM_In);PC<=PC+15'h1;QC<=3'h0;end
-			`LD_UPl:		begin	PCt[7:0]<=RAM_In;PC<=PC+15'h1;QC<=3'h4;end
-			`LD_VPl,	
-			`LD_VPlinc:	begin	PCt[7:0]<=RAM_In;PC<=PC+15'h1;Video_Add<=VP;QC<=3'h4;end
-			`LDBCll:		begin C<=RAM_In;PC<=PC+15'h1;QC<=3'h4;end
-			`LDA_UP:		begin A<=RAM_In;QC<=3'h0;end
-			`LDA_VP:		begin A<=Video_In;QC<=3'h0;end
-			`LD_VPAinc,
-			`LD_VPBinc:	begin	VP<=VP+15'h1;Video_we<=0;QC<=3'h0;end
-			default:		QC<=3'h0; //`NOP:
+			`LD_A_8:				begin A<=RAM_In;PC<=PC+15'h1;QC<=3'h0;end
+			`LD_B_8:				begin B<=RAM_In;PC<=PC+15'h1;QC<=3'h0;end
+			`LD_UP_15:			begin UP[7:0]<=RAM_In;PC<=PC+15'h1;QC<=3'h4;end
+			`LD_VP_15:			begin VP[7:0]<=RAM_In;PC<=PC+15'h1;QC<=3'h4;end
+			`GOTO_15:			begin PCt[7:0]<=RAM_In;PC<=PC+15'h1;QC<=3'h4;end
+			`JMPZ_8:				begin PC<=(F[`Zf])?PC+{{7{RAM_In[7]}},RAM_In}:PC+15'h1;QC<=3'h0;end
+			`RJMP_8:				begin	PC<=PC+{{7{RAM_In[7]}},RAM_In};QC<=3'h0;end
+			`SUB_A_8:			begin {F[`Cf],A}<=A-RAM_In;PC<=PC+15'h1;QC<=3'h0;end
+			`CMP_A_8:			begin	{F[`Cf],PCt[7:0]}<=A-RAM_In;F[`Zf]<=(A==RAM_In);PC<=PC+15'h1;QC<=3'h0;end
+			`LD_UP_8:			begin	PCt[7:0]<=RAM_In;PC<=PC+15'h1;QC<=3'h4;end
+			`LD_VP_8,	
+			`LDINC_$VP$_8:		begin	PCt[7:0]<=RAM_In;PC<=PC+15'h1;Video_Add<=VP;QC<=3'h4;end
+			`LD_BC_16:			begin C<=RAM_In;PC<=PC+15'h1;QC<=3'h4;end
+			`LD_A_$UP$:			begin A<=RAM_In;QC<=3'h0;end
+			`LD_A_$VP$:			begin A<=Video_In;QC<=3'h0;end
+			`LDINC_$VP$_A,
+			`LDINC_$VP$_B:		begin	VP<=VP+15'h1;Video_we<=0;QC<=3'h0;end
+			default:				QC<=3'h0; //`NOP:
 		endcase
 	3'h4:
 		case (IR)
-			`LDUPl,	
-			`LDVPl,	
-			`GOTO,	
-			`LDBCll:		begin RAM_Add<=PC;we<=0;QC<=3'h5;end
-			`LD_UPl:		begin	RAM_Out<=PCt[7:0];RAM_Add<=UP;we<=1;QC<=3'h0;end
-			`LD_VPl:		begin	Video_Out<=PCt[7:0];Video_we<=1;QC<=3'h0;end
-			`LD_VPlinc:	begin	Video_Out<=PCt[7:0];Video_we<=1;VP<=VP+15'h1;QC<=3'h0;end
-			default:		QC<=3'h0; //`NOP:
+			`LD_UP_15,	
+			`LD_VP_15,	
+			`GOTO_15,	
+			`LD_BC_16:			begin RAM_Add<=PC;we<=0;QC<=3'h5;end
+			`LD_UP_8:			begin	RAM_Out<=PCt[7:0];RAM_Add<=UP;we<=1;QC<=3'h0;end
+			`LD_VP_8:			begin	Video_Out<=PCt[7:0];Video_we<=1;QC<=3'h0;end
+			`LDINC_$VP$_8:		begin	Video_Out<=PCt[7:0];Video_we<=1;VP<=VP+15'h1;QC<=3'h0;end
+			default:				QC<=3'h0; //`NOP:
 		endcase
 	3'h5:
 		case (IR)
-			`LDUPl:		begin UP[14:8]<=RAM_In[6:0];PC<=PC+15'h1;QC<=3'h0;end
-			`LDVPl:		begin VP[14:8]<=RAM_In[6:0];PC<=PC+15'h1;QC<=3'h0;end
-			`GOTO:		begin PCt[14:8]<=RAM_In[6:0];QC<=3'h6;end
-			`LDBCll:		begin B<=RAM_In;PC<=PC+15'h1;QC<=3'h0;end
-			default:		QC<=3'h0; //`NOP:
+			`LD_UP_15:			begin UP[14:8]<=RAM_In[6:0];PC<=PC+15'h1;QC<=3'h0;end
+			`LD_VP_15:			begin VP[14:8]<=RAM_In[6:0];PC<=PC+15'h1;QC<=3'h0;end
+			`GOTO_15:			begin PCt[14:8]<=RAM_In[6:0];QC<=3'h6;end
+			`LD_BC_16:			begin B<=RAM_In;PC<=PC+15'h1;QC<=3'h0;end
+			default:				QC<=3'h0; //`NOP:
 		endcase
 	3'h6:
 		case (IR)
-			`GOTO:		begin PC<=PCt;QC<=3'h0;end
-			default:		QC<=3'h0; //`NOP:
+			`GOTO_15:		begin PC<=PCt;QC<=3'h0;end
+			default:			QC<=3'h0; //`NOP:
 		endcase
 	default:		QC<=3'h0; //`NOP:
 	endcase
