@@ -35,27 +35,27 @@ wire [10:0] RamPos;
 
 wire VisibleArea;
 wire [11:0]Color;
-wire [3:0]Pixel;
+reg [3:0]Pixel;
 
 reg [7:0] Inks[31:0];
 
-assign VisibleArea=((HCounter<`XVisible)&(VCounter<10'd400))?1'h1:1'h0;
+assign VisibleArea=((HCounter>`XBackPorch)&(HCounter<`XBackPorch+`XVisible)&(VCounter<10'd400))?1'h1:1'h0;
 assign Red=(VisibleArea)?Color[11:8]:4'h0;
 assign Green=(VisibleArea)?Color[7:4]:4'h0;
 assign Blue=(VisibleArea)?Color[3:0]:4'h0;
 
-assign RAM_Add=(VCounter<10'd400)?((VCounter>>1)*15'd160)+(HCounter>>2):
+assign RAM_Add=(VCounter<10'd400)?((VCounter>>1)*15'd160)+((HCounter-`XBackPorch)>>2):
 					(VCounter<10'd432)?((VCounter-15'd400)+15'd32000):
 					15'h0000;
 
-assign Pixel= HCounter[1]? RAM_Data[3:0]: RAM_Data [7:4];
 assign Color= {Inks[{Pixel,1'b1}][3:0],Inks[{Pixel,1'b0}]};
-assign HSync=(HCounter>(`XVisible+`XFrontPorch-1)) && (HCounter<(`XVisible+`XFrontPorch+`XSync)) ?1'h0:1'h1;
+assign HSync=(HCounter>(`XBackPorch+`XVisible+`XFrontPorch-1)) ?1'h0:1'h1;
 assign VSync=(VCounter>(`YVisible+`YFrontPorch-1)) && (VCounter<(`YVisible+`YFrontPorch+`YSync)) ?1'h0:1'h1;
 
 always @(posedge clk) int_clk=int_clk+1'b1;
 
 always @(posedge int_clk) begin
+	Pixel<= HCounter[1]? RAM_Data[3:0]: RAM_Data [7:4];
 	if (HCounter==`XTotal-1) begin
 		HCounter<=0;
 		if (VCounter==`YTotal-1) VCounter<=0;

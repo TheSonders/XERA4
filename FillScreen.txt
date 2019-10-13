@@ -74,5 +74,8 @@
 13	F6		//	1064	JMPZ_8		(-10)		Si es 0 saltamos seguimos el bucle
 08	FC		//	1066	RJMP_8		(-4)		Si no es 0 saltamos seguimos en el retardo
 
-48	4F	4C	41	20	41	6E	74	// 1068		Cadena "HOLA Antonio S \0"
-6F	6E	69	6F	20	53	20	00	//
+58	45	52	41	34	20	45	78 // cadena a imprimir \0
+70	65	72	69	6D	65	6E	74
+61	6C	20	43	50	55	20	26
+20	56	69	64	65	6F	20	63
+68	69	70	2E	20	7F	E0	20	00
