@@ -1,22 +1,78 @@
 // Programa de prueba precargado en la RAM del XERA4
 // Rellena la pantalla con bandas de colores
-05	00	00	//  0	LDVPl 		h0000  		Ponemos el puntero de video a 0
-02	01		//	3	LDAl		h01			Cargamos 1 en A
-0B	80	07	//  5	LDBCll		h780 		(12lineasx320ancho)
-14			//	8	LD_VPAinc				
-10			//	9	DECBC					Disminuimos el contador
-12	03		//	A	JMPZ		(+3)		Si es 0 saltamos al siguiente color
-07	FB		//	C	RJMP		(-5)		Si no es 0 saltamos al siguiente byte (pixel)
-0F			//	E	INCA					Incrementamos A (color)
-11	10		//	F	COMPAl		h10			Comparamos A con h10 (16)
-12	03		//	11	JMPZ		(+3)		Si es igual, terminamos
-07	F1		//	13	RJMP		(-15)		Si no, siguiente color
-05	00	7D	//  15	LDVPl 		h7D00  		Ponemos el puntero de video en la tinta 0
-0C			//	18	LDA_UP					Cargar el contenido de VideoRam en A
-05	00	7D	//  19	LDVPl 		h7D00  		Cargamos de nuevo para el bucle
-0F			//	1C	INCA					Incrementar A
-14			//	1D	LD_VPAinc				Aumentamos en uno el valor de la tinta 0
-0B	FF	FF	//  1E	LDBCll		hFFFF 		Retardo
-10			//	21	DECBC					Disminuimos el contador
-12	F6		//	22	JMPZ		(-10)		Si es 0 saltamos seguimos el bucle
-07	FC		//	24	RJMP		(-4)		Si no es 0 saltamos seguimos en el retardo
+
+06	00	00	//  1000	LD_VP_15 	h0000  		Ponemos el puntero de video a 0
+02	01		//	1003	LD_A_8		h01			Cargamos 1 en A
+0C	80	07	//  1005	LD_BC_16	h780 		(12lineasx320ancho)
+15			//	1008	LDINC_$VP$_A				
+11			//	1009	DEC_BC					Disminuimos el contador
+13	03		//	100A	JMPZ_8		(+3)		Si es 0 saltamos al siguiente color
+08	FB		//	100C	RJMP_8		(-5)		Si no es 0 saltamos al siguiente byte (pixel)
+10			//	100E	INC_A					Incrementamos A (color)
+12	10		//	100F	CMP_A_8		h10			Comparamos A con h10 (16)
+13	03		//	1011	JMPZ_8		(+3)		Si es igual, terminamos
+08	F1		//	1013	RJMP_8		(-15)		Si no, siguiente color
+
+06	00	00	//	1015	LD_VP_15 	h0000		Puntero de video en la esquina superior izquierda
+05	68	10	//	1018	LD_WP_15	cadena		Puntero WP a la cadena a imprimir
+			//			cargaCar:					
+18			//	101B	LDINC_A_$WP$			Cargamos el caracter en A e incrementamos puntero
+13	3A		//	101C	JMPZ_8		cambiotinta	Si A es cero fin de cadena, continuamos con los cambios de tinta
+09	20		//	101E	SUB_A_8		h20			Restamos 32, los primeros 32 caracteres no están en la memoria
+1A			//	1020	LD_C_A					Copiamos A al byte bajo de BC
+1C			//	1021	CLR_B					Borramos el byte alto de BC
+1D			//	1022	LLSHIFT_BC
+1D			//	1023	LLSHIFT_BC
+1D			//	1024	LLSHIFT_BC				Multiplicamos por 8 (bytes por carácter)
+1E	00		//	1025	ADD_C_8		bytelowtab	Le sumamos desplazamiento de la tabla de caracteres (ROM)
+1F	09		//	1027	ADDC_B_8	bytehitab
+24			//	1029	LD_UP_BC				Copiamos BC al puntero UP
+2C	08		//	102A	LD_G_8		h8			Cargamos G con el número de líneas
+			//			cargaLinea:
+17			//	102C	LDINC_A_$UP$			Cargamos en A una línea del caracter (un byte)
+25	04		//	102D	LD_E_8		h4			Cargamos en E el número de bytes horizontales
+			//			rotacion:
+20			//	102F	LLSHIFT_A				Vamos rotando A a la izquierda
+26	04		//	1030	JMPC_8		pixelAltoOn	En la bandera Carry tenemos el pixel ON u OFF
+27			//	1032	CLR_D					Si está OFF borramos D
+08	03		//	1033	RJMP_8		continua
+			//			pixelAltoOn:
+22	10		//	1035	LD_D_8		blancoalto	Si está ON ponemos color
+			//			continua:
+20			//	1037	LLSHIFT_A				Volvemos a rotar A para el siguiente pixel
+26	03		//	1038	JMPC_8		pixelBajoOn	Si está OFF no sumamos nada
+08	03		//	103A	RJMP_8		dibujapix
+			//			pixelBajoOn:
+28	01		//	103C	ADD_D_8		blancobajo	Si está ON sumamos color en el nibble bajo
+			//			dibujapix:
+23			//	103E	LDINC_$VP$_D			Copiamos D en la memoria de video
+29			//	103F	DEC_E					Disminuímos el contador horizontal
+13	03		//	1040	JMPZ_8		siguienteli	Si el contador es 0 nueva linea
+08	EC		//	1042	RJMP_8		rotacion
+			//			siguienteli:
+2A			//	1044	LD_BC_VP				Copiamos el puntero VP a BC para poder operar
+1E	9C		//	1045	ADD_C_8		bytebajo156
+1F	00		//	1047	ADDC_B_8	bytealto156	Le sumamos el desplazamiento para la siguiente linea
+2B			//	1049	LD_VP_BC
+2D			//	104A	DEC_G					Disminuímos el contador vertical
+13	03		//	104B	JMPZ_8		calculaPos
+08	DE		//	104D	RJMP_8		cargaLinea
+			//			calculaPos:
+2A			//	104F	LD_BC_VP				Copiamos el puntero VP a BC para poder operar
+1E	04		//	1050	ADD_C_8		bytelowFB00
+1F	FB		//	1052	ADDC_B_8	bytehiFB00	Le restamos el desplazamiento para el siguiente caracter
+2B			//	1054	LD_VP_BC
+08	C5		//	1055	RJMP_8		cargaCar	Saltamos a leer el siguiente caracter
+			//			cambiotinta:
+06	10	7D	//  1057	LD_VP_15 	h7D10  		Ponemos el puntero de video en la tinta 8
+0C			//	105A	LDA_UP					Cargar el contenido de VideoRam en A
+06	10	7D	//  105B	LD_VP_15 	h7D10  		Cargamos de nuevo para el bucle
+10			//	105E	INC_A					Incrementar A
+15			//	105F	LDINC_$VP$_A			Aumentamos en uno el valor de la tinta 0
+0C	FF	FF	//  1060	LD_BC_16	hFFFF 		Retardo
+11			//	1063	DEC_BC					Disminuimos el contador
+13	F6		//	1064	JMPZ_8		(-10)		Si es 0 saltamos seguimos el bucle
+08	FC		//	1066	RJMP_8		(-4)		Si no es 0 saltamos seguimos en el retardo
+
+48	4F	4C	41	20	41	6E	74	// 1068		Cadena "HOLA Antonio S \0"
+6F	6E	69	6F	20	53	20	00	//
