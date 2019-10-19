@@ -48,6 +48,9 @@
 `define	LD_G_8			8'H2C	//	4		8 bits literal to Register G
 `define	DEC_G			8'H2D	//	3		Decrements register G
 `define ADD_B_8			8'H2E	//	4		Add B + 8 bits literal
+`define LDBC_$VP_$WP	8'H2F	//	3/5		Contents of WP++ to contents of VP++ and decrements BC
+`define	CALL_15			8'H30	//	10
+`define	RETURN			8'H31	//	8
 
 // Pendientes de implementar
 //Carga de un registro a otro
@@ -56,8 +59,12 @@
 //Carga de un registro a la posición apuntada por un par de registros //incremento
 //Carga de un literal de 8 bits a la posición apuntada por un par de registros //incremento
 //Carga de la posición apuntada por un par de registros a un registro //incremento
-
 //Intercambio de 2 registros
+
+//Futuros OPCODE
+//LD	rd,rs		//11dddsss // If ddd=sss LD rd,literal8
+//CMP	rd,rs		//10dddsss // If ddd=sss CMP rd,literal8
+
 
 
 

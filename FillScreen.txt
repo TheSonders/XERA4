@@ -14,65 +14,23 @@
 08	F1		//	1013	RJMP_8		(-15)		Si no, siguiente color
 
 06	00	00	//	1015	LD_VP_15 	h0000		Puntero de video en la esquina superior izquierda
-05	68	10	//	1018	LD_WP_15	cadena		Puntero WP a la cadena a imprimir
-			//			cargaCar:					
-18			//	101B	LDINC_A_$WP$			Cargamos el caracter en A e incrementamos puntero
-13	3A		//	101C	JMPZ_8		cambiotinta	Si A es cero fin de cadena, continuamos con los cambios de tinta
-09	20		//	101E	SUB_A_8		h20			Restamos 32, los primeros 32 caracteres no están en la memoria
-1A			//	1020	LD_C_A					Copiamos A al byte bajo de BC
-1C			//	1021	CLR_B					Borramos el byte alto de BC
-1D			//	1022	LLSHIFT_BC
-1D			//	1023	LLSHIFT_BC
-1D			//	1024	LLSHIFT_BC				Multiplicamos por 8 (bytes por carácter)
-1E	00		//	1025	ADD_C_8		bytelowtab	Le sumamos desplazamiento de la tabla de caracteres (ROM)
-1F	09		//	1027	ADDC_B_8	bytehitab
-24			//	1029	LD_UP_BC				Copiamos BC al puntero UP
-2C	08		//	102A	LD_G_8		h8			Cargamos G con el número de líneas
-			//			cargaLinea:
-17			//	102C	LDINC_A_$UP$			Cargamos en A una línea del caracter (un byte)
-25	04		//	102D	LD_E_8		h4			Cargamos en E el número de bytes horizontales
-			//			rotacion:
-20			//	102F	LLSHIFT_A				Vamos rotando A a la izquierda
-26	04		//	1030	JMPC_8		pixelAltoOn	En la bandera Carry tenemos el pixel ON u OFF
-27			//	1032	CLR_D					Si está OFF borramos D
-08	03		//	1033	RJMP_8		continua
-			//			pixelAltoOn:
-22	10		//	1035	LD_D_8		blancoalto	Si está ON ponemos color
-			//			continua:
-20			//	1037	LLSHIFT_A				Volvemos a rotar A para el siguiente pixel
-26	03		//	1038	JMPC_8		pixelBajoOn	Si está OFF no sumamos nada
-08	03		//	103A	RJMP_8		dibujapix
-			//			pixelBajoOn:
-28	01		//	103C	ADD_D_8		blancobajo	Si está ON sumamos color en el nibble bajo
-			//			dibujapix:
-23			//	103E	LDINC_$VP$_D			Copiamos D en la memoria de video
-29			//	103F	DEC_E					Disminuímos el contador horizontal
-13	03		//	1040	JMPZ_8		siguienteli	Si el contador es 0 nueva linea
-08	EC		//	1042	RJMP_8		rotacion
-			//			siguienteli:
-2A			//	1044	LD_BC_VP				Copiamos el puntero VP a BC para poder operar
-1E	9C		//	1045	ADD_C_8		bytebajo156
-1F	00		//	1047	ADDC_B_8	bytealto156	Le sumamos el desplazamiento para la siguiente linea
-2B			//	1049	LD_VP_BC
-2D			//	104A	DEC_G					Disminuímos el contador vertical
-13	03		//	104B	JMPZ_8		calculaPos
-08	DE		//	104D	RJMP_8		cargaLinea
-			//			calculaPos:
-2A			//	104F	LD_BC_VP				Copiamos el puntero VP a BC para poder operar
-1E	04		//	1050	ADD_C_8		bytelowFB00
-1F	FB		//	1052	ADDC_B_8	bytehiFB00	Le restamos el desplazamiento para el siguiente caracter
-2B			//	1054	LD_VP_BC
-08	C5		//	1055	RJMP_8		cargaCar	Saltamos a leer el siguiente caracter
-			//			cambiotinta:
-06	10	7D	//  1057	LD_VP_15 	h7D10  		Ponemos el puntero de video en la tinta 8
-0C			//	105A	LDA_UP					Cargar el contenido de VideoRam en A
-06	10	7D	//  105B	LD_VP_15 	h7D10  		Cargamos de nuevo para el bucle
-10			//	105E	INC_A					Incrementar A
-15			//	105F	LDINC_$VP$_A			Aumentamos en uno el valor de la tinta 0
-0C	FF	FF	//  1060	LD_BC_16	hFFFF 		Retardo
-11			//	1063	DEC_BC					Disminuimos el contador
-13	F6		//	1064	JMPZ_8		(-10)		Si es 0 saltamos seguimos el bucle
-08	FC		//	1066	RJMP_8		(-4)		Si no es 0 saltamos seguimos en el retardo
+05	37	10	//	1018	LD_WP_15	cadena		Puntero WP a la cadena a imprimir
+30	0D	00	//	101B	CALL_15		h000D		Función del sistema SYS_PRNT_STR
+
+			//			scroll:
+06	2E	7D	//  101E	LD_VP_15 	h7D10  		Ponemos el puntero de video en la tinta 8
+0C			//	1021	LDA_UP					Cargar el contenido de VideoRam en A
+06	2E	7D	//  1022	LD_VP_15 	h7D10  		Cargamos de nuevo para el bucle
+10			//	1025	INC_A					Incrementar A
+12	65		//	1026	CMP_A_8		h65			Comparar con 100
+13	03		//	1028	JMPZ_8
+08	03		//	102A	RJMP_8
+02	00		//	102C	LD_A_8		h00
+15			//	102E	LDINC_$VP$_A			Aumentamos en uno el valor de la tinta 0
+0C	FF	FF	//  102F	LD_BC_16	hFFFF 		Retardo
+11			//	1032	DEC_BC					Disminuimos el contador
+13	EE		//	1033	JMPZ_8		(-17)		Si es 0 saltamos seguimos el bucle
+08	FC		//	1035	RJMP_8		(-4)		Si no es 0 saltamos seguimos en el retardo
 
 58	45	52	41	34	20	45	78 // cadena a imprimir \0
 70	65	72	69	6D	65	6E	74

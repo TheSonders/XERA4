@@ -1,4 +1,4 @@
-
+//32KiB of RAM for video chip
 //Antonio Sánchez
 module Video_RAM(
 	input [14:0] CPU_Add,
@@ -10,9 +10,6 @@ module Video_RAM(
 	output reg [7:0] Video_Data);
 
 reg [7:0] RAM [32767:0];
-
-initial
-	$readmemh("inks.txt", RAM, 32000, 32031);
 
 always @(posedge clk) begin
 	Video_Data<=RAM[Video_Add];
