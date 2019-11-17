@@ -1,0 +1,102 @@
+            //// Programa de prueba precargado en la RAM del XERA4
+            //// Rellena la pantalla con bandas de colores
+            //#define bytesperband	780
+            //#define VertScroll		7D2E
+            //#define SYS_PRNT_STR	0013
+            //#define SYS_SET_GRAPH_POS  0080
+            //#define SYS_PLOT           0091
+            //#define SYS_DRAW_LINE	00B5
+            //#define DelayTime		5FFF
+            //#org	1000
+            //#var	XPosition 1
+            //
+ 04	02	     //LD		rA	02			//Retardo al inicio para el monitor
+            //A_loop:
+ 0D	FF	FF   //LD		rBC	FFFF		
+            //BC_loop:
+ 21	        //DEC		rBC				//Disminuimos el contador
+ 35	03	     //RJMPZ	03				//Si es 0  seguimos el bucle
+ 33	FC      //RJMP	BC_loop			//Si no es 0 seguimos en el retardo
+ 1D	        //DEC		rA
+ 35	03      //RJMPZ	begindraw
+ 33	F4      //RJMP	A_loop
+            //
+            //begindraw:
+            ////LD 		rVP	0000		//Ponemos el puntero de video a 0
+            ////LD		rA	01			//Cargamos 1 en A
+            ////next_band:
+            ////LD		rBC	bytesperband//(12lineasx320ancho)
+            ////next_pixel:
+            ////LDINC	$VP	rA			//				
+            ////DEC		rBC				//Disminuimos el contador
+            ////RJMPZ		next_color	//Si es 0 saltamos al siguiente color
+            ////RJMP		next_pixel	//Si no es 0 saltamos al siguiente byte
+            ////next_color:
+            ////INC		rA				//Incrementamos A (color)
+            ////CMP		rA	10			//Comparamos A con h10 (16)
+            ////RJMPZ		03			//Si es igual, terminamos
+            ////RJMP		next_band	//Si no, siguiente banda de color
+ 0A	00	00   //LD		rVP 0000		//Video esquina superior izquierda
+ 09	82 10   //LD		rWP	cadena		//Puntero WP a la cadena a imprimir
+ 36	13	00   //CALL	SYS_PRNT_STR	//Función del sistema SYS_PRNT_STR
+            //dibuja_linea:
+ 04	FF	     //LD		rA	FF
+            //dibuja_linea_loop:
+ 0D	64	00   //LD		rBC 0064		// y 
+ 42	        //LD		rDE	rBC
+ 44	AC 10   //LDI 	XPosition	rA
+ 03	        //LD		rC	rA
+ 24	        //CLR		rB
+ 36	80	00   //CALL	SYS_SET_GRAPH_POS
+ 36	91	00   //CALL	SYS_PLOT
+ 43	AC 10   //LDI		rA		XPosition
+ 1D	        //DEC		rA
+ 22	0A	     //CMP		rA		0A
+ 35	03      //RJMPZ	dibuja_linea_fin
+ 33	E8      //RJMP	dibuja_linea_loop
+            //dibuja_linea_fin:
+ 0D	96	00   //LD		rBC	0096		// y final =150
+ 42	        //LD		rDE	rBC
+ 0D	32	00   //LD		rBC 0032		// x final =50
+ 36	B5	00   //CALL	SYS_DRAW_LINE	//Función del sistema SYS_DRAW_LINE
+ 0D	64	00   //LD		rBC	0064		// y final =100
+ 42	        //LD		rDE	rBC
+ 0D	3F	01   //LD		rBC 013F		// x final =319
+ 36	B5	00   //CALL	SYS_DRAW_LINE	//Función del sistema SYS_DRAW_LINE
+            //audio:
+ 0D	10	01   //LD		rBC	0110		//Chip de Audio registro 0
+ 04	EF	     //LD		rA	EF			//Periodo de tono (DO)
+ 50	        //OUTABC
+ 0D	11	01   //LD		rBC	0111		
+ 04	00	     //LD		rA	0			
+ 50	        //OUTABC
+ 0D	12	01   //LD		rBC	0112		//Chip de Audio registro 2
+ 04	64	     //LD		rA	64			//Duración
+ 50	        //OUTABC
+ 0D	13	01   //LD		rBC	0113
+ 04	00	     //LD		rA	0			
+ 50	        //OUTABC
+ 0D	14	01   //LD		rBC	0114		//Chip de Audio registro 4
+ 04	1F	     //LD		rA	1F			//Volumen
+ 50	        //OUTABC
+            //
+            //scroll:			
+ 0A	2E	7D   //LD		rVP VertScroll	//Puntero de video en scroll vertical
+ 0E	        //LD		rA	$UP			//Cargar el contenido de VideoRam en A
+            //bucle:
+ 0D	10	01   //LD		rBC	0110		//Chip de Audio registro 0
+ 50	        //OUTABC					//Mandamos a para probar tonos
+ 0A	2E	7D   //LD		rVP VertScroll	//Cargamos de nuevo para el bucle
+ 1C	        //INC		rA				//Incrementar A
+ 22	65	     //CMP		rA	65			//Comparar con 100
+ 35	03	     //RJMPZ	03				//
+ 33	03	     //RJMP	03				//
+ 04	00	     //LD		rA	00			//
+ 13	        //LDINC	$VP	rA 			//Aumentamos en uno el offset vertical
+ 0D	FF	5F   //LD		rBC	DelayTime	//Retardo
+ 21	        //DEC		rBC				//Disminuimos el contador
+ 35	EA      //RJMPZ	bucle			//Si es 0  seguimos el bucle
+ 33	FC	     //RJMP	FC				//Si no es 0 seguimos en el retardo
+            //cadena:
+ 20 58 45 52 41 34 20 45 78 70 65 72 69 6D 65 6E 74 61 6C 20 43 50 55 20 61 6E 64 20 56 69 64 65 6F 20 43 68 69 70 20 20 00 //#ds		" XERA4 Experimental CPU and Video Chip  \0"
+            //

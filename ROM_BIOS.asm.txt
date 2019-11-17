@@ -1,0 +1,404 @@
+            //// BIOS cargada en la ROM del XERA4
+            //// Por ahora, sólo inicia la memoria de video 
+            //// y salta a la posición de programa en RAM
+            //#varorg	7F00				//RAM position for System Variables
+            //#var	GraphX	2			//Custom graphical X position in pixels
+            //#var	GraphY	2			//Custom graphical Y position in pixels
+            //#var	GraphPen			//Custom graphical Pen (0 to 15)
+            //#var	GraphPaper			//Custom graphical Paper (0 to 15)
+            //#var	TempA8				//8 bits Temporal variables 
+            //#var	TempB8
+            //#var	TempC8
+            //#var	TempD8
+            //#var	TempE8
+            //#var	TempA16	2			//16 bits Temporal variables 
+            //#var	TempB16 2
+            //#var	TempC16 2
+            //#var	TempD16 2
+            //#var	TempE16 2
+            //#var	TempF16 2
+            //
+            //#define	FONT_TABLE_LOW		00	//ROM Address of Font Table (0900)
+            //#define	FONT_TABLE_HIGH		09
+            //#define SCREEN_WIDTH_PIXELS	140 // 320 pixels width
+            //#define SCREEN_MAX_RAM		7D00 //Max RAM Pos to PSet
+            //
+            ////RESET VECTOR
+ 0A	00	7D   //LD 		rVP	 	7D00  		//Puntero de video a inicialización
+ 09	50 00   //LD		rWP		initvideo	//Puntero WP a los datos de inicialización
+ 0D	30	00   //LD		rBC		0030 		//48 bytes de datos
+ 1B	        //LDBC	$VP		$WP			//Copia bloque de memoria BC numero de bytes
+ 0D	01	00   //LD		rBC		0001		//GraphPaper(0) & GraphPen(1)
+ 3B	04 7F   //LDI		GraphPen rBC		//Setting to system variables
+ 32	00	10   //GOTO	 		1000		//Dirección del primer byte de RAM
+            //
+            ////SYS_PRNT_STR
+            ////Prints a string of chars terminated with \0
+            ////Inputs: 	WP Pointer to the string to print
+            ////			VP Pointer to the video position
+            //SYS_PRNT_STR:					
+ 16	        //LDINC	rA	$WP				//Cargamos el caracter en A e incrementamos puntero
+ 35	3A      //RJMPZ		volver			//Si A es cero fin de cadena, volvemos a la memoria principal
+ 2E	20	     //SUB		rA	20				//Restamos los primeros 32 caracteres no están en la memoria
+ 03	        //LD		rC	rA				//Copiamos A al byte bajo de BC
+ 24	        //CLR		rB					//Borramos el byte alto de BC
+ 26	        //LLSHIFT	rBC
+ 26	        //LLSHIFT	rBC
+ 26	        //LLSHIFT	rBC					//Multiplicamos por 8 (bytes por carácter)
+ 2A	00	     //ADD		rC		FONT_TABLE_LOW	//Sumamos desplazamiento de tabla de caracteres (ROM)
+ 2B	09	     //ADDC	rB		FONT_TABLE_HIGH
+ 28	        //LD		rUP		rBC			//Copiamos BC al puntero UP
+ 06	08	     //LD		rG		08			//Cargamos G con el número de líneas
+            //cargaLinea:
+ 15	        //LDINC	rA		$UP			//Cargamos en A una línea del caracter (un byte)
+ 29	04	     //LD		rE		04			//Cargamos en E el número de bytes horizontales
+            //gotate:
+ 27	        //LLSHIFT	rA					//Vamos rotando A a la izquierda
+ 34	04      //RJMPC	pixelAltoOn			//En la bandera Carry tenemos el pixel ON u OFF
+ 25	        //CLR		rD					//Si está OFF borramos D
+ 33	03      //RJMP	continua
+            //pixelAltoOn:
+ 07	10	     //LD		rD		10			//Si está ON ponemos color
+            //continua:
+ 27	        //LLSHIFT	rA					//Volvemos a rotar A para el siguiente pixel
+ 34	03      //RJMPC	pixelBajoOn			//Si está OFF no sumamos nada
+ 33	03      //RJMP	dibujapix
+            //pixelBajoOn:
+ 2C	01	     //ADD		rD		01			//Si está ON sumamos color en el nibble bajo
+            //dibujapix:
+ 17	        //LDINC	$VP	rD				//Copiamos D en la memoria de video
+ 1F	        //DEC		rE					//Disminuímos el contador horizontal
+ 35	03      //RJMPZ		nxt_line		//Si el contador es 0 nueva linea
+ 33	EC      //RJMP	gotate
+            //nxt_line:
+ 10	        //LD		rBC		rVP			//Copiamos el puntero VP a BC para poder operar
+ 2A	9C	     //ADD		rC		9C
+ 2B	00	     //ADDC	rB		00			//Le sumamos el desplazamiento para la siguiente linea
+ 11	        //LD		rVP		rBC
+ 20	        //DEC		rG					//Disminuímos el contador vertical
+ 35	03      //RJMPZ			calculaPos
+ 33	DE      //RJMP			cargaLinea
+            //calculaPos:
+ 10	        //LD		rBC	rVP				//Copiamos el puntero VP a BC para poder operar
+ 2A	04	     //ADD		rC		04
+ 2B	FB	     //ADDC	rB		FB			//Le restamos el desplazamiento para el siguiente caracter (FB04)
+ 11	        //LD		rVP		rBC
+ 33	C5      //RJMP			SYS_PRNT_STR//Saltamos a leer el siguiente caracter
+            //volver:
+ 37	        //RETURN
+            //
+            //initvideo:
+            //// Initial video data for XERA4
+            //// 7D00 - 7D1F	inks
+00          //#db	00 //Ink 0
+00          //#db	00
+FF          //#db	FF //Ink 1
+0F          //#db	0F
+0F          //#db	0F //Ink 2
+00          //#db	00
+F0          //#db	F0 //Ink 3
+00          //#db	00
+00          //#db	00 //Ink 4
+0F          //#db	0F
+FF          //#db	FF //Ink 5
+00          //#db	00
+F0          //#db	F0 //Ink 6
+0F          //#db	0F
+0F          //#db	0F //Ink 7
+0F          //#db	0F
+AA          //#db	AA //Ink 8
+0A          //#db	0A
+FF          //#db	FF //Ink 9
+0F          //#db	0F
+AF          //#db	AF //Ink 10
+0A          //#db	0A
+FA          //#db	FA //Ink 11
+0A          //#db	0A
+AA          //#db	AA //Ink 12
+0F          //#db	0F
+AA          //#db	AA //Ink 13
+0A          //#db	0A
+FA          //#db	FA //Ink 14
+0F          //#db	0F
+AF          //#db	AF //Ink 15
+0F          //#db	0F
+            //// 7D20 - 7D22 graphic window area X1-Y1 (80,50)
+50          //#db	50
+00          //#db	00
+32          //#db	32
+            //// 7D23 - 7D25 graphic window area X2-Y2  (240,150)
+F0          //#db	F0 
+00          //#db	00 
+96          //#db	96
+            //// 7D26 - 7D28 graphic window visible X1-Y1 (88,58)
+58          //#db	58 
+00          //#db	00 
+3A          //#db	3A
+            //// 7D29 - 7D2B graphic window visible X2-Y2 (232,142)
+E8          //#db	E8
+00          //#db	00 
+8E          //#db	8E
+            //// 7D2C - 7D2E graphic window offset X-Y
+00          //#db	00 
+00          //#db	00 
+00          //#db	00
+            //// 7D2F void pen
+00          //#db	00
+            //
+            ////SYS_SET_GRAPH_POS
+            ////Sets the custom graphical X Y position
+            ////Inputs: 	A  Y graphical pos
+            ////			BC X graphical pos
+            //SYS_SET_GRAPH_POS:
+ 09	00 7F   //LD		rWP		GraphX
+ 18	        //LDINC	$WP		rBC
+ 41	        //LD		rBC		rDE
+ 18	        //LDINC	$WP		rBC
+ 37	        //RETURN
+            //
+            //
+            ////SYS_SET_GRAPH_PEN
+            ////Sets the custom graphical Pen (0 to 15)
+            ////Inputs: 	A  Graphical Pen number
+            ////
+            //SYS_SET_GRAPH_PEN:
+ 09	04 7F   //LD		rWP		GraphPen
+ 19	        //LDINC	$WP		rA
+ 37	        //RETURN
+            //
+            //
+            ////SYS_SET_GRAPH_PAPER
+            ////Sets the custom graphical Paper (0 to 15)
+            ////Inputs: 	A  Graphical Paper number
+            ////
+            //SYS_SET_GRAPH_PAPER:
+ 09	05 7F   //LD		rWP		GraphPaper
+ 19	        //LDINC	$WP		rA
+ 37	        //RETURN
+            //
+            //
+            ////SYS_PLOT
+            ////Sets the Point of Screen
+            ////using the current graphic position in system variables
+            ////Inputs: None
+            ////		
+            //SYS_PLOT:
+ 0D	40	01   //LD		rBC		SCREEN_WIDTH_PIXELS
+ 42	        //LD		rDE		rBC
+ 3A	02 7F   //LDI		rBC		GraphY
+ 31	        //MULT 	rBC		rDE
+ 3A	00 7F   //LDI		rBC		GraphX
+ 49	        //ADD		rBC		rDE
+ 4C	        //LRSHIFT	rBC
+ 11	        //LD		rVP		rBC
+ 0F	        //LD		rA		$VP
+ 34	07      //RJMPC	SYS_PLOT_Carry
+ 4D	0F	     //AND		rA		0F
+ 4E	10	     //ADD		rA		10
+ 33	05      //RJMP	SYS_PLOT_DoPset
+            //SYS_PLOT_Carry:
+ 4D	F0	     //AND		rA		F0
+ 4E	01	     //ADD		rA		01
+            //SYS_PLOT_DoPset:
+ 42	        //LD		rDE		rBC
+ 0D	00	7D   //LD		rBC		SCREEN_MAX_RAM
+ 2F	        //SUB		rBC		rDE
+ 34	02      //RJMPC	SYS_PLOT_End
+ 13	        //LDINC	$VP		rA
+            //SYS_PLOT_End:
+ 37	        //RETURN
+            //
+            ////SYS_DRAW_LINE
+            ////Bresenham algorithm drawing lines
+            //// from custom GraphX,GraphY to BC(X),DE(Y)
+            ////Inputs: 	BC Final X point of line
+            ////			DE Final Y point of line
+            //SYS_DRAW_LINE:
+            //#define 	DRAW_LINE_dY	TempA16
+            //#define 	DRAW_LINE_dX	TempB16
+            //#define 	DRAW_LINE_incXi	rH
+            //#define 	DRAW_LINE_incYi	rG
+            //#define		DRAW_LINE_incXr	TempA8
+            //#define		DRAW_LINE_incYr	TempB8
+            //#define 	DRAW_LINE_AVR	TempC16
+            //#define 	DRAW_LINE_AV	TempD16
+            //#define 	DRAW_LINE_AVI	TempE16
+            //#define 	DRAW_LINE_Y		GraphY
+            //#define 	DRAW_LINE_X		GraphX
+            //#define		FLAGS_COPY		rG
+            //#define		DRAW_LINE_X2	TempF16
+ 3B	15 7F   //LDI		DRAW_LINE_X2	rBC
+ 39	        //PUSH	rBC
+ 3A	02 7F   //LDI		rBC	DRAW_LINE_Y
+ 39	        //PUSH	rBC
+ 41	        //LD		rBC	rDE
+ 3C	        //POP		rDE
+ 2F	        //SUB 		rBC rDE
+ 3D	        //LD		FLAGS_COPY		rF
+ 3B	0B 7F   //LDI		DRAW_LINE_dY	rBC
+ 3A	00 7F   //LDI		rBC				DRAW_LINE_X
+ 42	        //LD		rDE	rBC
+ 38	        //POP		rBC
+ 2F	        //SUB		rBC				rDE
+ 34	05      //RJMPC	DRAW_LINE_dXlt0 
+ 04	01	     //LD		rA				1
+ 33	07      //RJMP		DRAW_LINE_chkdY
+            //DRAW_LINE_dXlt0:
+ 3F	FF	FF   //XOR		rBC		FFFF
+ 40	        //INC		rBC
+ 04	FF	     //LD		rA	FF
+            //DRAW_LINE_chkdY:
+ 3B	0D 7F   //LDI		DRAW_LINE_dX	rBC
+ 4B	        //LD		DRAW_LINE_incXi rA
+ 3A	0B 7F   //LDI		rBC				DRAW_LINE_dY
+ 3E	        //LD		rF				FLAGS_COPY
+ 34	05      //RJMPC		DRAW_LINE_dYlt0 
+ 04	01	     //LD		rA				1
+ 33	07      //RJMP		DRAW_LINE_rctinc	
+            //DRAW_LINE_dYlt0:
+ 3F	FF	FF   //XOR		rBC		FFFF
+ 40	        //INC		rBC
+ 04	FF	     //LD		rA	FF
+            //DRAW_LINE_rctinc:
+ 3B	0B 7F   //LDI		DRAW_LINE_dY	rBC
+ 4A	        //LD		DRAW_LINE_incYi rA
+ 42	        //LD		rDE				rBC
+ 3A	0D 7F   //LDI 		rBC				DRAW_LINE_dX
+ 2F	        //SUB		rBC				rDE
+ 34	0B      //RJMPC		DRAW_LINE_dYgreat
+ 45	        //CLR		rA
+ 44	07 7F   //LDI		DRAW_LINE_incYr	rA
+ 47	        //LD		rA				DRAW_LINE_incXi
+ 44	06 7F   //LDI		DRAW_LINE_incXr	rA
+ 33	17      //RJMP	DRAW_LINE_initval
+            //DRAW_LINE_dYgreat:
+ 45	        //CLR		rA
+ 44	06 7F   //LDI		DRAW_LINE_incXr	rA
+ 48	        //LD		rA				DRAW_LINE_incYi
+ 44	07 7F   //LDI		DRAW_LINE_incYr	rA
+ 3A	0B 7F   //LDI		rBC				DRAW_LINE_dY
+ 39	        //PUSH	rBC
+ 3A	0D 7F   //LDI		rBC				DRAW_LINE_dX
+ 3B	0B 7F   //LDI		DRAW_LINE_dY	rBC
+ 38	        //POP		rBC				
+ 3B	0D 7F   //LDI 	DRAW_LINE_dX	rBC
+            //DRAW_LINE_initval:
+ 3A	0B 7F   //LDI		rBC				DRAW_LINE_dY
+ 26	        //LLSHIFT	rBC
+ 3B	0F 7F   //LDI		DRAW_LINE_AVR	rBC
+ 39	        //PUSH	rBC
+ 3A	0D 7F   //LDI		rBC				DRAW_LINE_dX
+ 42	        //LD		rDE		rBC
+ 38	        //POP		rBC
+ 2F	        //SUB		rBC				rDE			
+ 3B	11 7F   //LDI		DRAW_LINE_AV	rBC				
+ 2F	        //SUB		rBC				rDE			
+ 3B	13 7F   //LDI		DRAW_LINE_AVI	rBC
+            //DRAW_LINE_loop:			
+ 36	91 00   //CALL		SYS_PLOT		
+ 3A	11 7F   //LDI		rBC				DRAW_LINE_AV
+ 4F	00	80   //AND 		rBC				8000
+ 35	25      //RJMPZ		DRAW_LINE_AVgreaterZero
+ 3A	00 7F   //LDI		rBC				DRAW_LINE_X
+ 43	06 7F   //LDI		rA				DRAW_LINE_incXr
+ 46	        //ADD		rA				rC
+ 2B	00	     //ADDC		rB				00
+ 03	        //LD		rC				rA
+ 3B	00 7F   //LDI		DRAW_LINE_X		rBC
+ 3A	02 7F   //LDI		rBC				DRAW_LINE_Y
+ 43	07 7F   //LDI		rA				DRAW_LINE_incYr
+ 46	        //ADD		rA				rC
+ 2B	00	     //ADDC		rB				00
+ 03	        //LD		rC				rA
+ 3B	02 7F   //LDI		DRAW_LINE_Y		rBC
+ 3A	11 7F   //LDI		rBC				DRAW_LINE_AV
+ 42	        //LD		rDE				rBC
+ 3A	0F 7F   //LDI		rBC				DRAW_LINE_AVR 
+ 49	        //ADD		rBC				rDE
+ 33	1F      //RJMP		DRAW_LINE_AVcheckEnd
+            //DRAW_LINE_AVgreaterZero:
+ 3A	00 7F   //LDI		rBC				DRAW_LINE_X
+ 47	        //LD		rA				DRAW_LINE_incXi
+ 46	        //ADD		rA				rC
+ 2B	00	     //ADDC		rB				00
+ 03	        //LD		rC				rA
+ 3B	00 7F   //LDI		DRAW_LINE_X		rBC
+ 3A	02 7F   //LDI		rBC				DRAW_LINE_Y
+ 48	        //LD		rA				DRAW_LINE_incYi
+ 46	        //ADD		rA				rC
+ 2B	00	     //ADDC		rB				00
+ 03	        //LD		rC				rA
+ 3B	02 7F   //LDI		DRAW_LINE_Y		rBC
+ 3A	11 7F   //LDI		rBC				DRAW_LINE_AV
+ 42	        //LD		rDE				rBC
+ 3A	13 7F   //LDI		rBC				DRAW_LINE_AVI
+ 49	        //ADD		rBC				rDE
+            //DRAW_LINE_AVcheckEnd:
+ 3B	11 7F   //LDI		DRAW_LINE_AV	rBC
+ 3A	15 7F   //LDI		rBC				DRAW_LINE_X2
+ 42	        //LD		rDE				rBC
+ 3A	00 7F   //LDI		rBC				DRAW_LINE_X
+ 2F	        //SUB		rBC				rDE
+ 35	03      //RJMPZ		DRAW_LINE_end
+ 33	A5      //RJMP		DRAW_LINE_loop
+            //DRAW_LINE_end:
+ 37	        //RETURN
+            //
+            //
+            ///*
+            //Funcion LineaBresenham( X1, Y1, X2, Y2)
+            //      // 0 - Distancias que se desplazan en cada eje
+            //      dY = (Y2 - Y1)
+            //      dX = (X2 - X1)
+            //    
+            //      // 1 - Incrementos para las secciones con avance inclinado
+            //      Si (dY >= 0) luego
+            //          IncYi = 1
+            //      Sino
+            //          dY = -dY
+            //          IncYi = -1
+            //      Fin si
+            //    
+            //      Si (dX >= 0) luego
+            //          IncXi = 1
+            //      Sino
+            //          dX = -dX
+            //          IncXi = -1
+            //      Fin si
+            //    
+            //      // 2 - Incrementos para las secciones con avance recto:
+            //      Si (dX >= dY) luego
+            //          IncYr = 0
+            //          IncXr = IncXi
+            //      Sino
+            //          IncXr = 0
+            //          IncYr = IncYi
+            //    
+            //          // Cuando dy es mayor que dx, se intercambian, para reutilizar el mismo bucle.
+            //          // ver octantes blancos en la imagen encima del código
+            //          k = dX: dX = dY: dY = k
+            //      Fin si
+            //    
+            //      // 3  - Inicializar valores (y de error).
+            //      X = X1: Y = Y1
+            //      avR = (2 * dY)
+            //      av = (avR - dX)
+            //      avI = (av - dX)
+            //    
+            //      // 4  - Bucle para el trazado de las línea.
+            //      Hacer
+            //          DibujarPixel(X, Y, Color) // Como mínimo se dibujará siempre 1 píxel (punto).
+            //          Mensaje(av + " ") // (debug) para ver los valores de error global que van apareciendo.
+            //          Si (av >= 0) luego
+            //              X = (X + IncXi)     // X aumenta en inclinado.
+            //              Y = (Y + IncYi)     // Y aumenta en inclinado.
+            //              av = (av + avI)     // Avance Inclinado
+            //          Sino
+            //              X = (X + IncXr)     // X aumenta en recto.
+            //              Y = (Y + IncYr)     // Y aumenta en recto.
+            //              av = (av + avR)     // Avance Recto
+            //          Fin si
+            //      Repetir hasta que (X = X2) // NOTA: La condición de 'Repetir Hasta', se debe cambiar si se elige 'Repetir Mientras'
+            //   Fin funcion
+            //   */
+            //
