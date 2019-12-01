@@ -10,6 +10,12 @@
 `define	LD_rA_rB		8'H01	//  3		Register B to Register A
 `define	LD_rB_rA		8'H02	//  3		Register A to Register B
 `define	LD_rC_rA		8'H03	//  3		Register A to Register C
+`define LD_rG_rF		8'H3D	//	3		rF->rG
+`define	LD_rF_rG		8'H3E	//	3		rG->rF
+`define LD_rG_rA		8'H4A	//	3		A->G
+`define LD_rH_rA		8'H4B	//	3		A->H
+`define LD_rA_rH		8'H47	//	3		H->A
+`define LD_rA_rG		8'H48	//	3		G->A
 //			literal to register
 `define	LD_rA_l8		8'H04	//	4		8 bits literal to Register A
 `define	LD_rB_l8		8'H05	//	4		8 bits literal to Register B
@@ -32,6 +38,9 @@
 `define	LD_rBC_rVP		8'H10	//	3		Pointer VP to pair BC
 `define	LD_rVP_rBC		8'H11	//	3		15bits of pair BC to Video Pointer
 `define	LD_rUP_rBC		8'H28	//	3		15bits of pair BC to User Pointer
+`define LD_rBC_rDE		8'H41	//	3		DE->BC
+`define LD_rDE_rBC		8'H42	//	3		BC->DE
+
 
 //	LOAD AND INCREMENT
 //		8bits
@@ -46,7 +55,7 @@
 `define	LDINC_rA_$UP	8'H15	//	4		Contents of UP to A and increments UP
 `define	LDINC_rA_$WP	8'H16	//	4		Contents of WP to A and increments WP
 //		16bits
-`define	LDINC_$WP_rBC	8'H18	//	5		Register C to WP, B to WP+1, WP+2
+`define	LDINC_$WP_rBC	8'H18	//	4		Register C to WP, B to WP+1, WP+2
 `define	LDINC_rBC_$WP	8'H1A	//	5		Contents of WP to BC and increments WP+2
 `define LDBC_$VP_$WP	8'H1B	//	3/5		Contents of WP++ to contents of VP++ and decrements BC
 
@@ -57,11 +66,13 @@
 `define	DEC_rE			8'H1F	//	3		Decrements register E
 `define	DEC_rG			8'H20	//	3		Decrements register G
 `define	DEC_rBC			8'H21	//	3		Decrements pair BC
+`define INC_rBC			8'H40	//	3		Increments pair BC
 
 //	COMPARE
 `define	CMP_rA_l8		8'H22	//	4		Update flags with A-8bits literal
 
 //	CLEAR
+`define CLR_rA			8'H45	//	3		Clear Register A
 `define CLR_rC			8'H23	//	3		Clear Register C
 `define CLR_rB			8'H24	//	3		Clear Register B
 `define CLR_rD			8'H25	//	3		Clear Register D
@@ -77,44 +88,42 @@
 `define ADD_rD_l8		8'H2C	//	4		Add D + 8 bits literal
 `define ADD_rB_l8		8'H2D	//	4		Add B + 8 bits literal
 `define	SUB_rA_l8		8'H2E	//	4		2comp' substract literal-A
+`define ADD_rA_rC		8'H46	//	3		8 bits A+C->A
+`define AND_rA_l8		8'H4D	//	5		Bitwise AND literal with A
+`define ADD_rA_l8		8'H4E	//	4		Add A + 8 bits literal
 //		16 bits
 `define	SUB_rBC_rDE		8'H2F	//	3		DE-BC->BC	
 `define	SUB_rBC_rGH		8'H30	//	3		GH-BC->BC	
 `define	MULT_rBC_rDE	8'H31	//	3		16bitsx16bits multiplication
+`define XOR_rBC_l16		8'H3F	//	6		16bits literal XOR BC
+`define LRSHIFT_rBC		8'H4C	//	3		Logical Right Shift pair BC
+`define AND_rBC_l16		8'H4F	//	6		16bits literal AND BC
+`define ADD_rBC_rDE		8'H49	//  3		16 bits BC+DE->BC
 
 //	JUMP
-`define	GOTO_l15		8'H32	//	7		15bits absolute Jump
-`define	RJMP_o8			8'H33	//	4		8bits signed Jump
-`define	RJMPC_o8		8'H34	//	4		8bits signed Jump if Flag C
-`define	RJMPZ_o8		8'H35	//	4		8bits signed Jump if Flag Z
-`define	CALL_l15		8'H36	//	10		15bits call subrutine
-`define	RETURN			8'H37	//	8		Return
+`define	GOTO_l15		8'h32	//	6		15bits absolute Jump
+`define	RJMP_o8			8'h33	//	4		8bits signed Jump
+`define	RJMPC_o8		8'h34	//	4		8bits signed Jump if Flag C
+`define	RJMPZ_o8		8'h35	//	4		8bits signed Jump if Flag Z
+`define	CALL_l15		8'h36	//	7		15bits call subrutine
+`define	RETURN			8'h37	//	7		Return
 
+//	STACK
 `define POP_rBC			8'H38	//	5		Pop 16 bits from Stack to pair BC
-`define PUSH_rBC		8'H39	//	5		Pop pair BC to Stack
-`define	LDI_rBC_l15		8'H3A	//	8		Load contents of position l15 into BC
-`define	LDI_l15_rBC		8'H3B	//	7		Load BC into contents of position l15
+`define PUSH_rBC		8'H39	//	4		Pop pair BC to Stack
 `define POP_rDE			8'H3C	//	5		Pop 16 bits from Stack to pair DE
-`define LD_rG_rF		8'H3D	//	3		rF->rG
-`define	LD_rF_rG		8'H3E	//	3		rG->rF
-`define XOR_rBC_l16		8'H3F	//	6		16bits literal XOR BC
-`define INC_rBC			8'H40	//	3		Increments pair BC
-`define LD_rBC_rDE		8'H41	//	3		DE->BC
-`define LD_rDE_rBC		8'H42	//	3		BC->DE
-`define	LDI_rA_l15		8'H43	//	7		Load contents of position l15 into A
-`define	LDI_l15_rA		8'H44	//	6		Load A into contents of position l15
-`define CLR_rA			8'H45	//	3		Clear Register A
-`define ADD_rA_rC		8'H46	//	3		8 bits A+C->A
-`define LD_rA_rH		8'H47	//	3		H->A
-`define LD_rA_rG		8'H48	//	3		G->A
-`define ADD_rBC_rDE		8'H49	//  3		16 bits BC+DE->BC
-`define LD_rG_rA		8'H4A	//	3		A->G
-`define LD_rH_rA		8'H4B	//	3		A->H
-`define LRSHIFT_rBC		8'H4C	//	3		Logical Right Shift pair BC
-`define AND_rA_l8		8'H4D	//	5		Bitwise AND literal with A
-`define ADD_rA_l8		8'H4E	//	4		Add A + 8 bits literal
-`define AND_rBC_l16		8'H4F	//	6		16bits literal AND BC
-`define	OUTABC			8'H50	//			OUT register A to Address BC
+
+//	INTERRUPTS
+`define EI				8'h51	//	3		Enable Interrupts
+`define	DI				8'h52	//	3		Disable Interrupts
+`define	RETI			8'h53	//	7		Return from interrupt Alternative Flags->Flags
+
+`define	LDI_rBC_l15		8'h3A	//	8		Load contents of position l15 into BC
+`define	LDI_l15_rBC		8'h3B	//	7		Load BC into contents of position l15
+`define	LDI_rA_l15		8'h43	//	7		Load contents of position l15 into A
+`define	LDI_l15_rA		8'h44	//	6		Load A into contents of position l15
+`define	OUTABC			8'h50	//	3		OUT register A to Address BC
+`define ADDC_rC_l8		8'h54	//	4		Add C + 8 bits literal + carry flag
 
 
 // Pendientes de implementar

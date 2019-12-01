@@ -1,12 +1,12 @@
             //// Programa de prueba precargado en la RAM del XERA4
             //// Rellena la pantalla con bandas de colores
-            //#define bytesperband	780
-            //#define VertScroll		7D2E
-            //#define SYS_PRNT_STR	0013
-            //#define SYS_SET_GRAPH_POS  0080
-            //#define SYS_PLOT           0091
-            //#define SYS_DRAW_LINE	00B5
-            //#define DelayTime		5FFF
+            //#define bytesperband		780
+            //#define VertScroll			7D2E
+            //#define SYS_PRNT_STR		002E
+            //#define SYS_SET_GRAPH_POS  	009B
+            //#define SYS_PLOT           	00AC
+            //#define SYS_DRAW_LINE		00D0
+            //#define DelayTime			5FFF
             //#org	1000
             //#var	XPosition 1
             //
@@ -38,7 +38,7 @@
             ////RJMP		next_band	//Si no, siguiente banda de color
  0A	00	00   //LD		rVP 0000		//Video esquina superior izquierda
  09	82 10   //LD		rWP	cadena		//Puntero WP a la cadena a imprimir
- 36	13	00   //CALL	SYS_PRNT_STR	//Función del sistema SYS_PRNT_STR
+ 36	2E	00   //CALL	SYS_PRNT_STR	//Función del sistema SYS_PRNT_STR
             //dibuja_linea:
  04	FF	     //LD		rA	FF
             //dibuja_linea_loop:
@@ -47,8 +47,8 @@
  44	AC 10   //LDI 	XPosition	rA
  03	        //LD		rC	rA
  24	        //CLR		rB
- 36	80	00   //CALL	SYS_SET_GRAPH_POS
- 36	91	00   //CALL	SYS_PLOT
+ 36	9B	00   //CALL	SYS_SET_GRAPH_POS
+ 36	AC	00   //CALL	SYS_PLOT
  43	AC 10   //LDI		rA		XPosition
  1D	        //DEC		rA
  22	0A	     //CMP		rA		0A
@@ -58,11 +58,11 @@
  0D	96	00   //LD		rBC	0096		// y final =150
  42	        //LD		rDE	rBC
  0D	32	00   //LD		rBC 0032		// x final =50
- 36	B5	00   //CALL	SYS_DRAW_LINE	//Función del sistema SYS_DRAW_LINE
+ 36	D0	00   //CALL	SYS_DRAW_LINE	//Función del sistema SYS_DRAW_LINE
  0D	64	00   //LD		rBC	0064		// y final =100
  42	        //LD		rDE	rBC
  0D	3F	01   //LD		rBC 013F		// x final =319
- 36	B5	00   //CALL	SYS_DRAW_LINE	//Función del sistema SYS_DRAW_LINE
+ 36	D0	00   //CALL	SYS_DRAW_LINE	//Función del sistema SYS_DRAW_LINE
             //audio:
  0D	10	01   //LD		rBC	0110		//Chip de Audio registro 0
  04	EF	     //LD		rA	EF			//Periodo de tono (DO)

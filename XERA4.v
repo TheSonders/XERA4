@@ -21,7 +21,6 @@ module XERA4(
 	wire [14:0] Video_Add;
 	wire [7:0] Video_Data;
 	
-	
 	//CPU<>VideoRam
 	wire [14:0] CPU_Add;
 	wire [7:0] CPU_In_Data;
@@ -40,6 +39,9 @@ module XERA4(
 	wire [7:0] Port_Out;
 	wire Port_we;
 	
+	//VIDEO<>CPU Interrupt
+	wire MI;
+	
 	//CPU CLOCK (Runs at 12.5MHz)
 	wire cpu_clk;
 	reg [1:0]cpu_counter=0;
@@ -51,6 +53,7 @@ Video_Chip VideoChip(
 	.clk(clk),
 	.VSync(VSync),
 	.HSync(HSync),
+	.Interrupt(MI),
 	.Red(VGA_Red),
 	.Green(VGA_Green),
 	.Blue(VGA_Blue),
@@ -75,6 +78,7 @@ System_RAM RAM(
 
 XERA4_CPU CPU(
 	.clk(cpu_clk),
+	.MI(MI),
 	.Port_Add(Port_Add),
 	.Port_Out(Port_Out),
 	.Port_In(Port_In),

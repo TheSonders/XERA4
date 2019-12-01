@@ -28,7 +28,7 @@
 
 module Video_Chip (
 	input clk,
-	output VSync,HSync,
+	output VSync,HSync,Interrupt,
 	output [3:0] Red,
 	output [3:0] Green,
 	output [3:0] Blue,
@@ -63,6 +63,11 @@ wire [8:0]InnerY=(WOffset[2]>DimmY)?
 assign Red=(VisibleArea)?Color[11:8]:4'h0;
 assign Green=(VisibleArea)?Color[7:4]:4'h0;
 assign Blue=(VisibleArea)?Color[3:0]:4'h0;
+assign Interrupt=((VCounter==(`YVisible+`YFrontPorch-1))||
+						(VCounter==(`YVisible+`YFrontPorch-106))||
+						(VCounter==(`YVisible+`YFrontPorch-211))||
+						(VCounter==(`YVisible+`YFrontPorch-316))||
+						(VCounter==(`YVisible+`YFrontPorch-421)))?1:0;
 
 assign RAM_Add=(VCounter<10'd400)?
 					(PixelX>={ WVisible[1],WVisible[0]})&&
