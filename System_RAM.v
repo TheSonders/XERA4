@@ -19,6 +19,7 @@ initial begin
  $readmemh("ROM_BIOS.asm.txt", RAM, 0);
  $readmemh("ROM_Fonts.txt", RAM, `Font_Pos);
  $readmemh("FillScreen.asm.txt", RAM,`Rom_Size);
+ $readmemh("SystemVariables.txt",RAM,15'h7F00);
 end
 
 wire write_enable = (we && Add>=`Rom_Size);

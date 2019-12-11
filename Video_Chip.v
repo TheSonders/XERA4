@@ -67,7 +67,7 @@ assign Interrupt=((VCounter==(`YVisible+`YFrontPorch-1))||
 						(VCounter==(`YVisible+`YFrontPorch-106))||
 						(VCounter==(`YVisible+`YFrontPorch-211))||
 						(VCounter==(`YVisible+`YFrontPorch-316))||
-						(VCounter==(`YVisible+`YFrontPorch-421)))?1:0;
+						(VCounter==(`YVisible+`YFrontPorch-421)))?1'h1:1'h0;
 
 assign RAM_Add=(VCounter<10'd400)?
 					(PixelX>={ WVisible[1],WVisible[0]})&&

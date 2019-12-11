@@ -8,6 +8,21 @@
             //#var	GraphPaper			//Custom graphical Paper (0 to 15)
             //#var	TimeLow	 2			//System chrono lower 16bits
             //#var	TimeHigh 2			//System chrono upper 16bits
+            //#var	Audio_Int_Counter	//Counter for interrupt step for audio queue
+            //#var	Ch0QueuePointer 
+            //#var	Ch0QueueUsed 
+            //#var	Ch0Queue0Duration 2
+            //#var	Ch0Queue0Period 2
+            //#var	Ch0Queue0Volume 
+            //#var	Ch0Queue1Duration 2
+            //#var	Ch0Queue1Period 2
+            //#var	Ch0Queue1Volume 
+            //#var	Ch0Queue2Duration 2
+            //#var	Ch0Queue2Period 2
+            //#var	Ch0Queue2Volume 
+            //#var	Ch0Queue3Duration 2
+            //#var	Ch0Queue3Period 2
+            //#var	Ch0Queue3Volume 
             //#var	TempA8				//8 bits Temporal variables 
             //#var	TempB8
             //#var	TempC8
@@ -24,14 +39,17 @@
             //#define	FONT_TABLE_HIGH		09
             //#define SCREEN_WIDTH_PIXELS	140 // 320 pixels width
             //#define SCREEN_MAX_RAM		7D00 //Max RAM Pos to PSet
+            //#define AUDIO_INT_STEP		2   // Every 3 interrupts execute audio queue
+            //#define AUDIO_BUFF_SIZE		5	// Size in bytes of every audio buffer
+            //#define AUDIO_QUEUE_SIZE	4	// Size in buffers of every audio channel
             //
             ////RESET VECTOR
- 32	1A 00   //GOTO	InitSystem
+ 32	7F 00   //GOTO	InitSystem
 00          //#db		00			//Padding Zero to fill (pending repair the compiler)
             //
             ////INTERRUPT VECTOR
             //#org 	0004
- 3A	06 7F   //LDI		rBC			TimeLow
+ 3A	06 7F   //LDI		rBC			TimeLow		// System chrono increments every 1/300 seconds
  2A	01	     //ADD		rC			01
  2B	00	     //ADDC	rB			00
  3B	06 7F   //LDI		TimeLow		rBC
@@ -39,19 +57,112 @@
  54	00	     //ADDC	rC			00
  2B	00	     //ADDC	rB			00
  3B	08 7F   //LDI		TimeHigh	rBC
+ 43	0A 7F   //LDI		rA 			Audio_Int_Counter	//Audio queue every 3 interrupts (almost 1/100 seconds)
+ 1D	        //DEC		rA
+ 44	0A 7F   //LDI		Audio_Int_Counter rA
+ 56	5D      //RJMPNZ	EndInterrupt
+ 04	02	     //LD		rA		AUDIO_INT_STEP			//Restore Interrupt audio step
+ 44	0A 7F   //LDI		Audio_Int_Counter rA
+ 5F	        //PUSH	rUP
+ 43	0C 7F   //LDI		rA			Ch0QueueUsed		//Check how buffers bussy
+ 35	51      //RJMPZ	NextAudioChannel
+            //CheckQueue:
+ 0D	0D 7F   //LD		rBC			Ch0Queue0Duration	//Pointer to first channel buffer
+ 43	0B 7F   //LDI		rA			Ch0QueuePointer		//Current pointer in use
+            //AudioBuffMultiply:
+ 35	07      //RJMPZ	EndBuffWalk
+ 58	05	00   //ADD		rBC			AUDIO_BUFF_SIZE
+ 1D	        //DEC		rA
+ 33	F9      //RJMP	AudioBuffMultiply
+            //EndBuffWalk:
+            //#define	AudioIndexDuration		00
+            //#define	AudioIndexPeriod		02
+            //#define	AudioIndexVolume		04
+ 28	        //LD		rUP			rBC					//Load of current note duration
+ 64	00	     //LDUP	rBC			AudioIndexDuration
+ 58	00	00   //ADD		rBC			0000				//Check if duration is Zero
+ 56	24      //RJMPNZ	PlaySound	
+ 43	0C 7F   //LDI		rA			Ch0QueueUsed		//Decrements QueueUsed counter
+ 1D	        //DEC		rA
+ 44	0C 7F   //LDI		Ch0QueueUsed	rA				
+ 35	0C      //RJMPZ	StopSound						//If no more queues in use then stop sound
+ 43	0B 7F   //LDI		rA			Ch0QueuePointer		//Else increments to next pointer
+ 1C	        //INC		rA
+ 4D	03	     //AND		rA			03					//Circular buffer
+ 44	0B 7F   //LDI		Ch0QueuePointer	rA				//4 buffers per channel
+ 33	D7      //RJMP	CheckQueue
+            //StopSound:
+ 0D	12	01   //LD		rBC			0112				//To stop, shut off volume
+ 04	00	     //LD		rA			0
+ 50	        //OUTABC
+ 0D	1F	01   //LD		rBC			011F				//and disable channel noise
+ 59	        //INABC
+ 4D	FE	     //AND		rA			FE					//So turn off bit 0 of reg 15 of sound chip
+ 50	        //OUTABC
+ 33	18      //RJMP	NextAudioChannel
+            //PlaySound:
+ 64	02	     //LDUP	rBC			AudioIndexPeriod	//Load current note tone period
+ 42	        //LD		rDE			rBC
+ 0D	10	01   //LD		rBC			0110				//Low byte 
+ 5C	        //LD		rA			rE
+ 50	        //OUTABC
+ 0D	11	01   //LD		rBC			0111				//High byte 
+ 5D	        //LD		rA			rD
+ 50	        //OUTABC
+ 63	04	     //LDUP	rA			AudioIndexVolume	//Load current note volume
+ 0D	12	01   //LD		rBC			0112				
+ 50	        //OUTABC
+ 64	00	     //LDUP	rBC			AudioIndexDuration	//Decrement duration for next interrupt
+ 21	        //DEC		rBC
+ 65	        //LDINC	$UP			rBC
+            //NextAudioChannel:
+ 61	        //POP		rUP
+            //EndInterrupt:
  51	        //EI
  53	        //RETI
             //
             ////PROGRAM START
             //InitSystem:
  0A	00	7D   //LD 		rVP	 	7D00  		//Puntero de video a inicialización
- 09	6B 00   //LD		rWP		initvideo	//Puntero WP a los datos de inicialización
+ 09	FA 00   //LD		rWP		initvideo	//Puntero WP a los datos de inicialización
  0D	30	00   //LD		rBC		0030 		//48 bytes de datos
  1B	        //LDBC	$VP		$WP			//Copia bloque de memoria BC numero de bytes
  0D	01	00   //LD		rBC		0001		//GraphPaper(0) & GraphPen(1)
  3B	04 7F   //LDI		GraphPen rBC		//Setting to system variables
+ 04	02	     //LD		rA		AUDIO_INT_STEP			//Interrupt audio step
+ 44	0A 7F   //LDI		Audio_Int_Counter rA
  51	        //EI							//Enable interrupts
  32	00	10   //GOTO	 		1000		//Dirección del primer byte de RAM
+            //
+            ////SYS_ENQUEUE_SOUND
+            ////Adds a new sound to the queue
+            ////Inputs: 	A Number of sound channel (0 to 4)
+            ////			UP Pointer to the sound structure
+            ////Returns Zero flag ON if queue is full, OFF if successful
+            //SYS_ENQUEUE_SOUND:
+ 43	0C 7F   //LDI		rA	Ch0QueueUsed
+ 69	        //LD		rD	rA					//Keeps in C QueueUsed
+ 2E	04	     //SUB		rA	AUDIO_QUEUE_SIZE
+ 66	        //RETZ
+ 52	        //DI								//Disable interrupts
+ 0D	0D 7F   //LD		rBC	Ch0Queue0Duration	//Pointer to first channel buffer
+ 43	0B 7F   //LDI		rA	Ch0QueuePointer
+ 6A	        //ADD		rA	rD					//Calculate next free buffer
+ 4D	03	     //AND		rA	03
+            //QueueBuffMultiply:
+ 35	07      //RJMPZ	QueueEndBuffWalk
+ 58	05	00   //ADD		rBC		AUDIO_BUFF_SIZE
+ 1D	        //DEC		rA
+ 33	F9      //RJMP	QueueBuffMultiply
+            //QueueEndBuffWalk:				//Copy data to sound buffer
+ 5E	        //LD		rWP		rBC
+ 0D	05	00   //LD		rBC		AUDIO_BUFF_SIZE
+ 67	        //LDBC	$WP		$UP
+ 5D	        //LD		rA		rD				//Increments QueueUsed
+ 1C	        //INC		rA
+ 44	0C 7F   //LDI   	Ch0QueueUsed	rA
+ 51	        //EI
+ 37	        //RETURN
             //
             ////SYS_PRNT_STR
             ////Prints a string of chars terminated with \0
@@ -111,38 +222,22 @@
             //initvideo:
             //// Initial video data for XERA4
             //// 7D00 - 7D1F	inks
-00          //#db	00 //Ink 0
-00          //#db	00
-FF          //#db	FF //Ink 1
-0F          //#db	0F
-0F          //#db	0F //Ink 2
-00          //#db	00
-F0          //#db	F0 //Ink 3
-00          //#db	00
-00          //#db	00 //Ink 4
-0F          //#db	0F
-FF          //#db	FF //Ink 5
-00          //#db	00
-F0          //#db	F0 //Ink 6
-0F          //#db	0F
-0F          //#db	0F //Ink 7
-0F          //#db	0F
-AA          //#db	AA //Ink 8
-0A          //#db	0A
-FF          //#db	FF //Ink 9
-0F          //#db	0F
-AF          //#db	AF //Ink 10
-0A          //#db	0A
-FA          //#db	FA //Ink 11
-0A          //#db	0A
-AA          //#db	AA //Ink 12
-0F          //#db	0F
-AA          //#db	AA //Ink 13
-0A          //#db	0A
-FA          //#db	FA //Ink 14
-0F          //#db	0F
-AF          //#db	AF //Ink 15
-0F          //#db	0F
+00 00       //#dw	0000	//Ink 0
+FF 0F       //#dw	0FFF	//Ink 1
+0F 00       //#dw	000F	//Ink 2
+F0 00       //#dw	00F0	//Ink 3
+00 0F       //#dw	0F00	//Ink 4
+FF 00       //#dw	00FF	//Ink 5
+F0 0F       //#dw	0FF0	//Ink 6
+0F 0F       //#dw	0F0F	//Ink 7
+AA 0A       //#dw	0AAA	//Ink 8
+FF 0F       //#dw	0FFF	//Ink 9
+AF 0A       //#dw	0AAF	//Ink 10
+FA 0A       //#dw	0AFA	//Ink 11
+AA 0F       //#dw	0FAA	//Ink 12
+AA 0A       //#dw	0AAA	//Ink 13
+FA 0F       //#dw	0FFA	//Ink 14
+AF 0F       //#dw	0FAF	//Ink 15
             //// 7D20 - 7D22 graphic window area X1-Y1 (80,50)
 50          //#db	50
 00          //#db	00
@@ -248,7 +343,7 @@ E8          //#db	E8
             //#define 	DRAW_LINE_X		GraphX
             //#define		FLAGS_COPY		rG
             //#define		DRAW_LINE_X2	TempF16
- 3B	19 7F   //LDI		DRAW_LINE_X2	rBC
+ 3B	30 7F   //LDI		DRAW_LINE_X2	rBC
  39	        //PUSH	rBC
  3A	02 7F   //LDI		rBC	DRAW_LINE_Y
  39	        //PUSH	rBC
@@ -256,7 +351,7 @@ E8          //#db	E8
  3C	        //POP		rDE
  2F	        //SUB 		rBC rDE
  3D	        //LD		FLAGS_COPY		rF
- 3B	0F 7F   //LDI		DRAW_LINE_dY	rBC
+ 3B	26 7F   //LDI		DRAW_LINE_dY	rBC
  3A	00 7F   //LDI		rBC				DRAW_LINE_X
  42	        //LD		rDE	rBC
  38	        //POP		rBC
@@ -269,9 +364,9 @@ E8          //#db	E8
  40	        //INC		rBC
  04	FF	     //LD		rA	FF
             //DRAW_LINE_chkdY:
- 3B	11 7F   //LDI		DRAW_LINE_dX	rBC
+ 3B	28 7F   //LDI		DRAW_LINE_dX	rBC
  4B	        //LD		DRAW_LINE_incXi rA
- 3A	0F 7F   //LDI		rBC				DRAW_LINE_dY
+ 3A	26 7F   //LDI		rBC				DRAW_LINE_dY
  3E	        //LD		rF				FLAGS_COPY
  34	05      //RJMPC		DRAW_LINE_dYlt0 
  04	01	     //LD		rA				1
@@ -281,60 +376,60 @@ E8          //#db	E8
  40	        //INC		rBC
  04	FF	     //LD		rA	FF
             //DRAW_LINE_rctinc:
- 3B	0F 7F   //LDI		DRAW_LINE_dY	rBC
+ 3B	26 7F   //LDI		DRAW_LINE_dY	rBC
  4A	        //LD		DRAW_LINE_incYi rA
  42	        //LD		rDE				rBC
- 3A	11 7F   //LDI 		rBC				DRAW_LINE_dX
+ 3A	28 7F   //LDI 		rBC				DRAW_LINE_dX
  2F	        //SUB		rBC				rDE
  34	0B      //RJMPC		DRAW_LINE_dYgreat
  45	        //CLR		rA
- 44	0B 7F   //LDI		DRAW_LINE_incYr	rA
+ 44	22 7F   //LDI		DRAW_LINE_incYr	rA
  47	        //LD		rA				DRAW_LINE_incXi
- 44	0A 7F   //LDI		DRAW_LINE_incXr	rA
+ 44	21 7F   //LDI		DRAW_LINE_incXr	rA
  33	17      //RJMP	DRAW_LINE_initval
             //DRAW_LINE_dYgreat:
  45	        //CLR		rA
- 44	0A 7F   //LDI		DRAW_LINE_incXr	rA
+ 44	21 7F   //LDI		DRAW_LINE_incXr	rA
  48	        //LD		rA				DRAW_LINE_incYi
- 44	0B 7F   //LDI		DRAW_LINE_incYr	rA
- 3A	0F 7F   //LDI		rBC				DRAW_LINE_dY
+ 44	22 7F   //LDI		DRAW_LINE_incYr	rA
+ 3A	26 7F   //LDI		rBC				DRAW_LINE_dY
  39	        //PUSH	rBC
- 3A	11 7F   //LDI		rBC				DRAW_LINE_dX
- 3B	0F 7F   //LDI		DRAW_LINE_dY	rBC
+ 3A	28 7F   //LDI		rBC				DRAW_LINE_dX
+ 3B	26 7F   //LDI		DRAW_LINE_dY	rBC
  38	        //POP		rBC				
- 3B	11 7F   //LDI 	DRAW_LINE_dX	rBC
+ 3B	28 7F   //LDI 	DRAW_LINE_dX	rBC
             //DRAW_LINE_initval:
- 3A	0F 7F   //LDI		rBC				DRAW_LINE_dY
+ 3A	26 7F   //LDI		rBC				DRAW_LINE_dY
  26	        //LLSHIFT	rBC
- 3B	13 7F   //LDI		DRAW_LINE_AVR	rBC
+ 3B	2A 7F   //LDI		DRAW_LINE_AVR	rBC
  39	        //PUSH	rBC
- 3A	11 7F   //LDI		rBC				DRAW_LINE_dX
+ 3A	28 7F   //LDI		rBC				DRAW_LINE_dX
  42	        //LD		rDE		rBC
  38	        //POP		rBC
  2F	        //SUB		rBC				rDE			
- 3B	15 7F   //LDI		DRAW_LINE_AV	rBC				
+ 3B	2C 7F   //LDI		DRAW_LINE_AV	rBC				
  2F	        //SUB		rBC				rDE			
- 3B	17 7F   //LDI		DRAW_LINE_AVI	rBC
+ 3B	2E 7F   //LDI		DRAW_LINE_AVI	rBC
             //DRAW_LINE_loop:			
- 36	AC 00   //CALL		SYS_PLOT		
- 3A	15 7F   //LDI		rBC				DRAW_LINE_AV
+ 36	3B 01   //CALL		SYS_PLOT		
+ 3A	2C 7F   //LDI		rBC				DRAW_LINE_AV
  4F	00	80   //AND 		rBC				8000
  35	25      //RJMPZ		DRAW_LINE_AVgreaterZero
  3A	00 7F   //LDI		rBC				DRAW_LINE_X
- 43	0A 7F   //LDI		rA				DRAW_LINE_incXr
+ 43	21 7F   //LDI		rA				DRAW_LINE_incXr
  46	        //ADD		rA				rC
  2B	00	     //ADDC		rB				00
  03	        //LD		rC				rA
  3B	00 7F   //LDI		DRAW_LINE_X		rBC
  3A	02 7F   //LDI		rBC				DRAW_LINE_Y
- 43	0B 7F   //LDI		rA				DRAW_LINE_incYr
+ 43	22 7F   //LDI		rA				DRAW_LINE_incYr
  46	        //ADD		rA				rC
  2B	00	     //ADDC		rB				00
  03	        //LD		rC				rA
  3B	02 7F   //LDI		DRAW_LINE_Y		rBC
- 3A	15 7F   //LDI		rBC				DRAW_LINE_AV
+ 3A	2C 7F   //LDI		rBC				DRAW_LINE_AV
  42	        //LD		rDE				rBC
- 3A	13 7F   //LDI		rBC				DRAW_LINE_AVR 
+ 3A	2A 7F   //LDI		rBC				DRAW_LINE_AVR 
  49	        //ADD		rBC				rDE
  33	1F      //RJMP		DRAW_LINE_AVcheckEnd
             //DRAW_LINE_AVgreaterZero:
@@ -350,13 +445,13 @@ E8          //#db	E8
  2B	00	     //ADDC		rB				00
  03	        //LD		rC				rA
  3B	02 7F   //LDI		DRAW_LINE_Y		rBC
- 3A	15 7F   //LDI		rBC				DRAW_LINE_AV
+ 3A	2C 7F   //LDI		rBC				DRAW_LINE_AV
  42	        //LD		rDE				rBC
- 3A	17 7F   //LDI		rBC				DRAW_LINE_AVI
+ 3A	2E 7F   //LDI		rBC				DRAW_LINE_AVI
  49	        //ADD		rBC				rDE
             //DRAW_LINE_AVcheckEnd:
- 3B	15 7F   //LDI		DRAW_LINE_AV	rBC
- 3A	19 7F   //LDI		rBC				DRAW_LINE_X2
+ 3B	2C 7F   //LDI		DRAW_LINE_AV	rBC
+ 3A	30 7F   //LDI		rBC				DRAW_LINE_X2
  42	        //LD		rDE				rBC
  3A	00 7F   //LDI		rBC				DRAW_LINE_X
  2F	        //SUB		rBC				rDE
